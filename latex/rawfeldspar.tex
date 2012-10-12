@@ -1,0 +1,135 @@
+\documentclass[natbib]{sigplanconf}
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amssymb}
+\usepackage{stmaryrd}
+\usepackage{haskell}
+\usepackage{url}
+\usepackage{natbib}
+\usepackage{proof}
+
+\newcommand{\kw}[1]{\mbox{\fontfamily{cmr}\fontseries{b}\selectfont#1}}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{prop}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\newcommand{\hinfer}[3]{\vcenter{\infer[\DT{#1}]{#2}{#3}}}
+\newcommand{\ENV}{\Gamma}
+\newcommand{\beval}{\mapsto} % FIXME: Wrong arrow.
+\newcommand{\ent}{\vdash}
+\newcommand{\cost}{\alt}
+\newcommand{\spacer}{\,\,\,\,} % FIXME: Wrong spacer
+
+\newcommand{\DT}[1]{\mbox{\sc #1}}
+\newcommand{\alt}{\;\:\vert\;\:}
+
+\newcommand{\KPAR}{K^{par}}
+\newcommand{\KFOR}{K^{for}}
+\newcommand{\K}[1]{K_{#1}}
+
+\newcommand{\IF}{\kw{if}\,}
+\newcommand{\THEN}{\,\kw{then}\,}
+\newcommand{\ELSE}{\,\kw{else}\,}
+\newcommand{\LET}{\kw{let}\,}
+\newcommand{\IN}{\,\kw{in}\,}
+\newcommand{\PARALLEL}{\kw{parallel}\,}
+\newcommand{\FOR}{\kw{for}\,}
+\newcommand{\INDEX}{\,\kw{!}\,\,}
+
+\newcommand{\TRUE}{True}
+\newcommand{\FALSE}{False}
+\newcommand{\ARRAY}[1]{[#1]}
+
+\newcommand{\FST}{\kw{fst}\,}
+\newcommand{\SND}{\kw{snd}\,}
+
+\begin{document}
+
+%\special{papersize=8.5in,11in}
+%\setlength{\pdfpageheight}{\paperheight}
+%\setlength{\pdfpagewidth}{\paperwidth}
+
+
+\conferenceinfo{XXX}{YYY}
+\CopyrightYear{2012}
+\copyrightdata{ZZZ}
+
+\titlebanner{Draft: \today}        % These are ignored unless
+\preprintfooter{short description of paper}   % 'preprint' option specified.
+
+\title{Raw Feldspar}
+
+\authorinfo{Everybody \and us}
+           {Chalmers, SICS and Ericsson}
+           {\{name1, name2\}@chalmers.se, etc}
+
+\maketitle
+
+\begin{abstract}
+Raw Feldspar.
+\end{abstract}
+
+\section{Introduction}
+
+\section{Language}
+\label{sec:lang}
+
+Feldspar core is a first-order strict functional language 
+with let-bindings and primitive arrays. Its syntax for expressions,
+values and patterns is shown in Figure \ref{fig:language}.
+
+\begin{figure}
+\begin{tabular}{lll}
+\multicolumn{3}{l}{Expressions} \\ \hline \\
+  $e$ &::= & $n \alt x \alt \TRUE \alt \FALSE  \alt x_1
+      \oplus  x_2
+      \alt  f(\overline{x})$ \\
+ &  $\alt$ & $(x_1, x_2) \alt \FST x \alt \SND x$ \\ 
+ &  $\alt$ & $\LET x = e_1 \IN e_2 \alt \IF x \THEN e_t \ELSE e_f$ \\ 
+ &  $\alt$ & $\PARALLEL x\, i.e \alt \ARRAY{\overline{v}} \alt  x_1 \INDEX x_2 \alt
+              \FOR x\, y\, i.s.e$\\
+\\
+\multicolumn{3}{l}{Values} \\ \hline \\
+  $v$ &::= & $n  \alt \TRUE \alt \FALSE \alt \ARRAY{\overline{v}}$ \\
+\end{tabular}  
+\caption{The language}
+\label{fig:language}
+\end{figure}
+
+The language contains integer values $n$ and arithmetic
+operations $\oplus$, although these meta-variables can preferably be
+understood as ranging over primitive values in general and arbitrary
+operations on these. We let $+$ denote the semantic meaning of
+$\oplus$.
+
+A program is an expression with no free variables and all function
+names defined in XXX.  The intended operational
+semantics is given in Figure \ref{fig:redsem}, where
+$[\overline{e}/\overline{x}]e'$ is the capture-free substitution of
+expressions $\overline{e}$ for variables $\overline{x}$ in $e'$.
+
+\begin{figure}
+$\hinfer{Par}{\ENV \ent \PARALLEL x\,i.e \beval \ARRAY{v_0\ldots v_{n-1}} \cost \KPAR}{\ENV(x) = n \spacer \ENV {i \mapsto j} \ent e \beval v_j \cost \K{j} \spacer j=0\ldots n-1}$
+
+$\hinfer{For}{\ENV \ent \FOR x\,y\, i.s.e \beval v_n \cost \KFOR}{\ENV(x) = n \spacer \ENV(y) = v_0 \spacer \ENV {i \mapsto j, s \mapsto v_j} \ent e \beval v_{j+1} \cost \K{j} \spacer j=0\ldots n-1}$
+\caption{Reduction semantics}
+\label{fig:redsem}
+\end{figure}
+
+\section{Related Work}
+
+\section{Conclusions}
+
+\acks
+
+
+\bibliographystyle{plainnat}
+
+\bibliography{rawfeldspar}
+\end{document}
+
