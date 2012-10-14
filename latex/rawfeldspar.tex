@@ -1,5 +1,31 @@
 \documentclass[natbib]{sigplanconf}
 
+% Issues/TODOs
+%
+% [Weird] Arrays can only be constructed through the parallel primitive, but 
+% they need to be present in grammar and values for the lanugage so that 
+% parallel evaluates to something. Strange asymmetry.
+%
+% [Notation] We should not overload Gamma for the environments for the 
+% operational semantics and typing rules.
+%
+% [Notation] Find a neat type symbol instead of ``Arr t'' for arrays.
+%
+% [Notation] Find a neat symbol instead of [vs] for arrays.
+%
+% [Notation] Find a syntactically small way to extend environments
+%
+% [Notation] Does the Index type need to be called Index, or should we call
+% it Ix/I_x instead?
+
+
+% Misc comments/insights
+%
+% One reason that Hoffmann et al. separate Q syntactically in the type 
+% environment is that the rules would look like crap from all the pairs
+% otherwise
+
+
 \usepackage{amsmath}
 \usepackage{amsthm}
 \usepackage{amssymb}
@@ -23,7 +49,12 @@
 \newcommand{\beval}{\mapsto} % FIXME: Wrong arrow.
 \newcommand{\ent}{\vdash}
 \newcommand{\cost}{\alt}
-\newcommand{\spacer}{\,\,\,\,} % FIXME: Wrong spacer
+\newcommand{\nl}{\vspace{2.5ex} \\}
+\newcommand{\il}{\vspace{0.4ex} \\}
+\newcommand{\spc}{\hspace{5ex}}
+
+\newcommand{\shift}{\triangleleft}
+
 
 \newcommand{\DT}[1]{\mbox{\sc #1}}
 \newcommand{\alt}{\;\:\vert\;\:}
@@ -44,9 +75,22 @@
 \newcommand{\TRUE}{True}
 \newcommand{\FALSE}{False}
 \newcommand{\ARRAY}[1]{[#1]}
+\newcommand{\PAIR}[2]{(#1, #2)}
 
 \newcommand{\FST}{\kw{fst}\,}
 \newcommand{\SND}{\kw{snd}\,}
+
+% Type stuff
+
+\newcommand{\TINDEX}{Index}
+\newcommand{\TINT}{Int}
+\newcommand{\TBOOL}{Bool}
+\newcommand{\TPAIR}[2]{#1 \times #2}
+\newcommand{\TARRAY}{Arr\,}
+\newcommand{\TFUN}{\rightarrow}
+
+
+\newcommand{\TENV}{\Gamma}
 
 \begin{document}
 
@@ -71,7 +115,7 @@
 \maketitle
 
 \begin{abstract}
-Raw Feldspar.
+See the top of the tex-file for some more outstanding issues.
 \end{abstract}
 
 \section{Introduction}
@@ -91,11 +135,14 @@ values and patterns is shown in Figure \ref{fig:language}.
       \alt  f(\overline{x})$ \\
  &  $\alt$ & $(x_1, x_2) \alt \FST x \alt \SND x$ \\ 
  &  $\alt$ & $\LET x = e_1 \IN e_2 \alt \IF x \THEN e_t \ELSE e_f$ \\ 
- &  $\alt$ & $\PARALLEL x\, i.e \alt \ARRAY{\overline{v}} \alt  x_1 \INDEX x_2 \alt
+ &  $\alt$ & $\ARRAY{\overline{v}} \alt \PARALLEL x\, i.e \alt x_1 \INDEX x_2 \alt
               \FOR x\, y\, i.s.e$\\
 \\
 \multicolumn{3}{l}{Values} \\ \hline \\
-  $v$ &::= & $n  \alt \TRUE \alt \FALSE \alt \ARRAY{\overline{v}}$ \\
+  $v$ &::= & $n  \alt i \alt \TRUE \alt \FALSE \alt \PAIR{v}{v'} \alt \ARRAY{\overline{v}}$ \\
+\\
+\multicolumn{3}{l}{Types} \\ \hline \\
+  $t$ &::= & $\TINT \alt \TINDEX \alt \TBOOL \alt \TPAIR{t}{t'}  \alt \TARRAY t \alt \overline{t} \TFUN t$ \\
 \end{tabular}  
 \caption{The language}
 \label{fig:language}
@@ -113,13 +160,27 @@ semantics is given in Figure \ref{fig:redsem}, where
 $[\overline{e}/\overline{x}]e'$ is the capture-free substitution of
 expressions $\overline{e}$ for variables $\overline{x}$ in $e'$.
 
-\begin{figure}
-$\hinfer{Par}{\ENV \ent \PARALLEL x\,i.e \beval \ARRAY{v_0\ldots v_{n-1}} \cost \KPAR}{\ENV(x) = n \spacer \ENV {i \mapsto j} \ent e \beval v_j \cost \K{j} \spacer j=0\ldots n-1}$
+\begin{figure*}
+$\hinfer{E:Par}{\ENV \ent \PARALLEL x\,i.e \beval \ARRAY{v_0\ldots v_{n-1}} \cost \KPAR}{\ENV(x) = n \spc \ENV {i \mapsto j} \ent e \beval v_j \cost \K{j} \spc j=0\ldots n-1}$ \nl
 
-$\hinfer{For}{\ENV \ent \FOR x\,y\, i.s.e \beval v_n \cost \KFOR}{\ENV(x) = n \spacer \ENV(y) = v_0 \spacer \ENV {i \mapsto j, s \mapsto v_j} \ent e \beval v_{j+1} \cost \K{j} \spacer j=0\ldots n-1}$
+$\hinfer{E:For}{\ENV \ent \FOR x\,y\, i.s.e \beval v_n \cost \KFOR}{\ENV(x) = n \spc \ENV(y) = v_0 \spc \ENV {i \mapsto j, s \mapsto v_j} \ent e \beval v_{j+1} \cost \K{j} \spc j=0\ldots n-1}$
 \caption{Reduction semantics}
 \label{fig:redsem}
-\end{figure}
+\end{figure*}
+
+\section{Type System}
+
+TODO: Explain $\shift$.
+
+
+% This does not work. Yet.
+\begin{figure*}
+$\hinfer{T:Par}{\TENV; Q \ent \PARALLEL x\,i.e : (\TARRAY t, Q')}{\TENV(x) = \TINDEX \spc \TENV;i : \TINDEX; Q \ent e : (t, Q'') \spc Q = \shift_{arr}(Q') + \KPAR}$ \nl
+
+$\hinfer{T:For}{\TENV; Q \ent \FOR x\,y\, i.s.e : (t, Q')}{\TENV(x) = \TENV(y) = \TINDEX \spc \TENV;i:\TINDEX; s:t; Q \ent e : (t, Q'')}$
+\caption{Typing Rules}
+\label{fig:typesyst}
+\end{figure*}
 
 \section{Related Work}
 
