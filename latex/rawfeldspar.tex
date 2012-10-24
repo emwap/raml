@@ -24,6 +24,10 @@
 % One reason that Hoffmann et al. separate Q syntactically in the type 
 % environment is that the rules would look like crap from all the pairs
 % otherwise
+%
+% It's tempting to use e_f for the false branch in if in the language
+% grammar, but that clashes with e_f that we use to denote the body of 
+% the function f.
 
 
 \usepackage{amsmath}
@@ -46,7 +50,7 @@
 
 \newcommand{\hinfer}[3]{\vcenter{\infer[\DT{#1}]{#2}{#3}}}
 \newcommand{\ENV}{\Gamma}
-\newcommand{\beval}{\mapsto} % FIXME: Wrong arrow.
+\newcommand{\beval}{\Downarrow} % FIXME: Wrong arrow.
 \newcommand{\ent}{\vdash}
 \newcommand{\cost}{\alt}
 \newcommand{\nl}{\vspace{2.5ex} \\}
@@ -55,14 +59,34 @@
 
 \newcommand{\shift}{\triangleleft}
 
+\DeclareMathOperator{\dom}{\it dom}
 
 \newcommand{\DT}[1]{\mbox{\sc #1}}
 \newcommand{\alt}{\;\:\vert\;\:}
 
-\newcommand{\KPAR}{K^{par}}
-\newcommand{\KFOR}{K^{for}}
+% Costs for operations.
+\newcommand{\KBOOL}{K^{bool}}
+\newcommand{\KINT}{K^{int}}
+\newcommand{\KIX}{K^{ix}}
+\newcommand{\KARR}{K^{arr}}
+\newcommand{\KVAR}{K^{var}}
+\newcommand{\KOP}{K^{binop}}
+\newcommand{\KPAIR}{K^{pair}}
+\newcommand{\KFST}{K^{fst}}
+\newcommand{\KSND}{K^{snd}}
+\newcommand{\KCONT}[1]{K^{ifT}_{#1}}
+\newcommand{\KCONF}[1]{K^{ifF}_{#1}}
+\newcommand{\KLET}[1]{K^{let}_{#1}}
+\newcommand{\KPAR}[1]{K^{par}_{#1}}
+\newcommand{\KFOR}[1]{K^{for}_{#1}}
+\newcommand{\KAPP}[1]{K^{app}_{#1}}
+\newcommand{\KINDEX}{K^{index}}
 \newcommand{\K}[1]{K_{#1}}
 
+% Cost addition
+\newcommand{\KADD}{+} % FIXME: Wrong symbol.
+
+% Keywords.
 \newcommand{\IF}{\kw{if}\,}
 \newcommand{\THEN}{\,\kw{then}\,}
 \newcommand{\ELSE}{\,\kw{else}\,}
@@ -71,17 +95,17 @@
 \newcommand{\PARALLEL}{\kw{parallel}\,}
 \newcommand{\FOR}{\kw{for}\,}
 \newcommand{\INDEX}{\,\kw{!}\,\,}
+\newcommand{\FST}{\kw{fst}\,}
+\newcommand{\SND}{\kw{snd}\,}
 
+% Values
 \newcommand{\TRUE}{True}
 \newcommand{\FALSE}{False}
 \newcommand{\ARRAY}[1]{[#1]}
 \newcommand{\PAIR}[2]{(#1, #2)}
 
-\newcommand{\FST}{\kw{fst}\,}
-\newcommand{\SND}{\kw{snd}\,}
 
-% Type stuff
-
+% Type names
 \newcommand{\TINDEX}{Index}
 \newcommand{\TINT}{Int}
 \newcommand{\TBOOL}{Bool}
@@ -90,7 +114,7 @@
 \newcommand{\TFUN}{\rightarrow}
 
 
-\newcommand{\TENV}{\Gamma}
+\newcommand{\TENV}{\Gamma} % FIXME: Clashes with \ENV
 
 \begin{document}
 
@@ -134,7 +158,7 @@ values and patterns is shown in Figure \ref{fig:language}.
       \oplus  x_2
       \alt  f(\overline{x})$ \\
  &  $\alt$ & $(x_1, x_2) \alt \FST x \alt \SND x$ \\ 
- &  $\alt$ & $\LET x = e_1 \IN e_2 \alt \IF x \THEN e_t \ELSE e_f$ \\ 
+ &  $\alt$ & $\LET x = e_1 \IN e_2 \alt \IF x \THEN e_1 \ELSE e_2$ \\ 
  &  $\alt$ & $\ARRAY{\overline{v}} \alt \PARALLEL x\, i.e \alt x_1 \INDEX x_2 \alt
               \FOR x\, y\, i.s.e$\\
 \\
@@ -160,13 +184,58 @@ semantics is given in Figure \ref{fig:redsem}, where
 $[\overline{e}/\overline{x}]e'$ is the capture-free substitution of
 expressions $\overline{e}$ for variables $\overline{x}$ in $e'$.
 
-\begin{figure*}
-$\hinfer{E:Par}{\ENV \ent \PARALLEL x\,i.e \beval \ARRAY{v_0\ldots v_{n-1}} \cost \KPAR}{\ENV(x) = n \spc \ENV {i \mapsto j} \ent e \beval v_j \cost \K{j} \spc j=0\ldots n-1}$ \nl
+Evaluation judgement:
+\begin{equation*}
+\ENV \ent e \beval v \cost \K{}
+\end{equation*}
 
-$\hinfer{E:For}{\ENV \ent \FOR x\,y\, i.s.e \beval v_n \cost \KFOR}{\ENV(x) = n \spc \ENV(y) = v_0 \spc \ENV {i \mapsto j, s \mapsto v_j} \ent e \beval v_{j+1} \cost \K{j} \spc j=0\ldots n-1}$
+\begin{figure*}
+$\hinfer{E:Var}{\ENV \ent x \beval v \cost \KVAR}{\ENV(x) = v}$ \nl
+
+$\hinfer{E:ConstInt}{\ENV \ent n \beval n \cost \KINT}{}$ \spc
+$\hinfer{E:ConstIx}{\ENV \ent i \beval i \cost \KIX}{}$ \spc
+$\hinfer{E:ConstB}{\ENV \ent b \beval b \cost \KBOOL}{b \in \{\TRUE, \FALSE \} }$ \nl
+
+$\hinfer{E:ConstA}{\ENV \ent \ARRAY{v_0, \ldots, v_{n-1}} \beval \ARRAY{v_0, \ldots, v_{n-1}} \cost \KARR}{}$ \nl
+
+$\hinfer{E:BinOp}{\ENV \ent x_1 \oplus x_2 \beval v \cost \KOP}{\ENV(x_1) = n_1 \spc \ENV(x_2) = n_2 \spc v = n_1 + n_2}$ \spc
+$\hinfer{E:App}{\ENV \ent f(x_1,\ldots,x_n) \beval v \cost \KAPP{1} \KADD \K{} \KADD \KAPP{2}}{\ENV(x_i) = v_i \spc \ENV, x_i = v_i \ent e_f \beval v \cost \K{} \spc i=1\ldots n}$ \nl
+
+$\hinfer{E:Pair}{\ENV \ent \PAIR{x_1}{x_2} \beval \PAIR{v_1}{v_2} \cost \KPAIR}{\ENV(x_1) = v_1 \spc \ENV(x_2) = v_2}$ \nl
+$\hinfer{E:Fst}{\ENV \ent \FST x \beval v_1 \cost \KFST}{\ENV(x) = (v_1, v_2)}$ \spc
+$\hinfer{E:Snd}{\ENV \ent \SND x \beval v_2 \cost \KSND}{\ENV(x) = (v_1, v_2)}$ \nl
+
+$\hinfer{E:Let}{\ENV \ent \LET x = e_1 \IN e_2 \beval v \cost \KLET{1} \KADD \K{1} \KADD \KLET{2} \KADD \K{2} \KADD  \KLET{3}}{\ENV \ent e_1 \beval v_1 \cost \K{1} \spc \ENV,x_1 = v_1 \ent e_2 \beval v \cost \K{2}}$ \nl
+
+$\hinfer{E:IfT}{\ENV \ent \IF x \THEN e_1 \ELSE e_2 \beval v \cost \KCONT{1} \KADD \K{} \KADD \KCONT{2}}{\ENV(x) = \TRUE \spc \ENV \ent e_1 \beval v \cost \K{}}$ \spc
+$\hinfer{E:IfF}{\ENV \ent \IF x \THEN e_1 \ELSE e_2 \beval v \cost \KCONF{1} \KADD  \K{} \KADD  \KCONF{2}}{\ENV(x) = \FALSE \spc \ENV \ent e_2 \beval v \cost \K{}}$ \nl
+
+$\hinfer{E:Par}{\ENV \ent \PARALLEL x\,i.e \beval \ARRAY{v_0\ldots v_{n-1}} \cost \KPAR{1} \KADD \K{j} \KADD \KPAR{2}}{\ENV(x) = n \spc \ENV,i = j \ent e \beval v_j \cost \K{j} \spc j=0\ldots n-1}$ \spc
+$\hinfer{E:Index}{\ENV \ent x_1 \INDEX x_2 \beval v_i \cost \KINDEX}{\ENV(x_1) = \ARRAY{v_0,\ldots,v_{n-1}} \spc \ENV(x_2) = i}$ \nl
+
+$\hinfer{E:For}{\ENV \ent \FOR x\,y\, i.s.e \beval v_n \cost \KFOR{1} \KADD \K{j} \KADD \KFOR{2}}{\ENV(x) = n \spc \ENV(y) = v_0 \spc \ENV,i = j, s = v_j \ent e \beval v_{j+1} \cost \K{j+1} \spc j=0\ldots n-1}$
 \caption{Reduction semantics}
 \label{fig:redsem}
 \end{figure*}
+
+
+FIXME: Rephrase the theorem to fit our semantics which doesn't return the
+extended environment.
+
+\begin{theorem}[Immutable values]
+Let {\it e} is an expression and $\ENV$ an environment. If $\ENV \ent e \beval v \cost \K{}$ then $\ENV(x) = \ENV'(x)$ for all $x \in \dom(\ENV)$
+\end{theorem}
+
+
+\subsection{Partial semantics}
+
+Convergent evaluations set an upper bound for partial evaluations:
+\begin{theorem}[Bounded resource usage]
+If $\ENV \ent e \beval v \cost (q, q')$  and $\ENV \ent e \beval \cost p$ 
+then $p \leq q$.
+\end{theorem}
+
+
 
 \section{Type System}
 
@@ -175,9 +244,9 @@ TODO: Explain $\shift$.
 
 % This does not work. Yet.
 \begin{figure*}
-$\hinfer{T:Par}{\TENV; Q \ent \PARALLEL x\,i.e : (\TARRAY t, Q')}{\TENV(x) = \TINDEX \spc \TENV;i : \TINDEX; Q \ent e : (t, Q'') \spc Q = \shift_{arr}(Q') + \KPAR}$ \nl
+$\hinfer{T:Par}{\TENV; Q \ent \PARALLEL x\,i.e : (\TARRAY t, Q')}{\TENV(x) = \TINDEX \spc \TENV,i : \TINDEX; Q \ent e : (t, Q'') \spc Q = \shift_{arr}(Q') + \KPAR{0}}$ \nl
 
-$\hinfer{T:For}{\TENV; Q \ent \FOR x\,y\, i.s.e : (t, Q')}{\TENV(x) = \TENV(y) = \TINDEX \spc \TENV;i:\TINDEX; s:t; Q \ent e : (t, Q'')}$
+$\hinfer{T:For}{\TENV; Q \ent \FOR x\,y\, i.s.e : (t, Q')}{\TENV(x) = \TENV(y) = \TINDEX \spc \TENV,i:\TINDEX, s:t; Q \ent e : (t, Q'')}$
 \caption{Typing Rules}
 \label{fig:typesyst}
 \end{figure*}
