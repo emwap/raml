@@ -75,7 +75,7 @@ data F e
     | PrimFun Name [e]
     | Var VarId
     | Cond e e e
-    | Par VarId e e
+    | Par e VarId e
   deriving (Show, Functor, Foldable, Traversable)
 
 
@@ -149,7 +149,7 @@ instance Simplify (Condition :|| Type)
 instance Simplify (Array :|| Type)
   where
     simplifySym (C' Parallel) (len :* (lam :$ body) :* Nil)
-      | Just (SubConstr2 (Lambda v)) <- prjLambda lam = Par v (simplifyAST len) (simplifyAST body)
+      | Just (SubConstr2 (Lambda v)) <- prjLambda lam = Par (simplifyAST len) v (simplifyAST body)
 
 
 
