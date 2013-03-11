@@ -76,6 +76,7 @@ data F e
     | Var VarId
     | Cond e e e
     | Par e VarId e
+    | ArrayElem e e
   deriving (Show, Functor, Foldable, Traversable)
 
 
@@ -150,6 +151,8 @@ instance Simplify (Array :|| Type)
   where
     simplifySym (C' Parallel) (len :* (lam :$ body) :* Nil)
       | Just (SubConstr2 (Lambda v)) <- prjLambda lam = Par (simplifyAST len) v (simplifyAST body)
+    simplifySym (C' GetIx) (arr :* ix :* Nil) = ArrayElem (simplifyAST arr) (simplifyAST ix)
+
 
 
 
@@ -159,3 +162,8 @@ instance Simplify (Array :|| Type)
 
 expr1 a = parallel a (*2)
 
+superMul :: Data [IntN] -> Data [IntN]
+superMul xs = parallel 16 (\ix -> mulNum 4 (getIx xs ix))
+
+superMul2 :: Data [IntN] -> Data [IntN] -> Data [IntN]
+superMul2 xs ys = parallel 16 (\ix -> mulNum (getIx xs ix) (getIx ys ix))
