@@ -86,8 +86,8 @@ pretty = simpleMatch prettySym
 toRAML :: SyntacticFeld a => a -> Doc
 toRAML expr = vcat w $+$ a $+$ runtime $+$ text "main = ()"
   where
-    (a,w) = evalRWS (go [] $ reifyFeld N32 expr) () 0
-    go :: [(VarId,Doc)] -> ASTF (Decor Info FeldDomain) a -> PrettyM Doc
+    (a,w) = evalRWS (go [] $ reifyFeld defaultFeldOpts N32 expr) () 0
+    go :: [(VarId,Doc)] -> ASTF (Decor Info FeldDom) a -> PrettyM Doc
     go vars (Sym (Decor info lam) :$ body)
         | Just (SubConstr2 (Lambda v)) <- prjLambda lam
         = go ((v,prettyType $ argType $ infoType info):vars) body
