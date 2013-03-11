@@ -45,7 +45,7 @@ import Feldspar.Core.Constructs.Mutable
 import Feldspar.Core.Constructs.MutableArray
 import Feldspar.Core.Constructs.MutableReference
 import Feldspar.Core.Constructs.MutableToPure
-import Feldspar.Core.Constructs.Num
+import qualified Feldspar.Core.Constructs.Num as Frontend
 import Feldspar.Core.Constructs.Ord
 import Feldspar.Core.Constructs.Trace
 import Feldspar.Core.Constructs.Tuple
@@ -68,18 +68,39 @@ data Feld = Feld
     { feldExpr :: F Feld
     , feldType :: Typ
     }
-  deriving (Show)
+
+instance Show Feld
+  where
+    show (Feld e t) = show e -- ++ " :: " ++ show t
 
 data F e
     = Lit String Dynamic
     | PrimFun Name [e]
     | Var VarId
     | Cond e e e
+      -- Array operations
     | Par e VarId e
     | ArrayElem e e
-  deriving (Show, Functor, Foldable, Traversable)
+      -- Vectorisation
+    | MachineVec [e]
+      -- NUM members:
+    | Add e e
+    | Sub e e
+    | Mul e e
+  deriving (Functor, Foldable, Traversable)
 
-
+instance Show a => Show (F a)
+  where
+    show (Lit s _) = s
+    show (PrimFun n es) = n ++ "(" ++ Prelude.concatMap (\arg -> show arg ++ ", ") es ++ ")"
+    show (Var v) = 'v':show v
+    show (Cond c t f) = "if (" ++ show c ++ ") then " ++ show t ++ " else " ++ show f
+    show (Par len v e) = "parallel " ++ show len ++ " (\\v" ++ show v ++ " -> " ++ show e ++ ")"
+    show (ArrayElem e1 e2) = "(" ++ show e1 ++ " ! " ++ show e2 ++ ")"
+    show (MachineVec es) = "MV " ++ show es
+    show (Add e1 e2) = show e1 ++ " + " ++ show e2
+    show (Sub e1 e2) = show e1 ++ " + " ++ show e2
+    show (Mul e1 e2) = show e1 ++ " + " ++ show e2
 
 ----------------------------------------------------------------------------------------------------
 -- * Conversion
@@ -141,6 +162,12 @@ instance Simplify (Literal :|| Type)
 instance Simplify (Variable :|| Type)
   where
     simplifySym (C' (Variable v)) Nil = Var v
+
+instance Simplify (Frontend.NUM :|| Type)
+  where
+    simplifySym (C' Frontend.Add) (e1 :* e2 :* Nil) = Add (simplifyAST e1) (simplifyAST e2)
+    simplifySym (C' Frontend.Sub) (e1 :* e2 :* Nil) = Sub (simplifyAST e1) (simplifyAST e2)
+    simplifySym (C' Frontend.Mul) (e1 :* e2 :* Nil) = Mul (simplifyAST e1) (simplifyAST e2)
 
 instance Simplify (Condition :|| Type)
   where
