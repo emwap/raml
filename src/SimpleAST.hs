@@ -25,6 +25,7 @@ import Language.Syntactic.Constructs.Literal
 
 import Feldspar.Core.Types
 import Feldspar.Core.Interpretation
+import Feldspar.Core.Constructs
 import Feldspar.Core.Constructs.Array
 import Feldspar.Core.Constructs.Binding
 import Feldspar.Core.Constructs.Bits
@@ -130,7 +131,7 @@ simplifyTop (lam :$ body)
 simplifyTop a = simplifyAST a
 
 simplify :: SyntacticFeld a => a -> Feld
-simplify = simplifyTop . reifyFeld N32
+simplify = simplifyTop . reifyFeld defaultFeldOpts N32
 
 instance Simplify (Literal :|| Type)
   where
